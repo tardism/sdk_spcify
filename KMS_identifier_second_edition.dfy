@@ -60,7 +60,7 @@
 //     }
 
 method testing(input:string, m:char)
-    requires input == "aaa"
+    requires input == "aaxxxxsaa"
     requires m in input
     {
 
@@ -68,15 +68,14 @@ method testing(input:string, m:char)
     // var num := help_slice(input,m,"");
     // var multiset_result := multiset(input)[m]+2;
 
-    assert |help_slice("aaa",'a',"")|== multiset("aaa")['a']+1;
+    assert |help_slice("assasssassssaaaass",'a',"")|== multiset("aaa")['a']+1;
 
-    assert |help_slice(input,'z',"")| == multiset(input)['s']+1;
-    
-    assert |help_slice(input,'z',"")| == multiset(input)['s']+1;
+    assert |help_slice(input,'m',"")| == multiset(input)['m']+1;
 
 }
 
 function help_slice(input : string, m: char, section:string):(ouput:seq<string>)
+    
 {
     if |input| == 0 then
         [section]
@@ -84,22 +83,74 @@ function help_slice(input : string, m: char, section:string):(ouput:seq<string>)
         if m == input[0] then
             [section] + help_slice(input[1..], m, "")
         else
-            var fstChar := input[0];
-            help_slice(input[1..], m, "")
+            var fstChar := [input[0]];
+            help_slice(input[1..], m, section+fstChar)
 }
 
-function help_slice_complicated(input : string, m: char,section:string, str_seq : seq<string>):(ouput:seq<string>)
 
+
+datatype ARN = ARN(
+    arnLiteral: string,
+    partition: string,
+    service: string,
+    account: string,
+    region: string
+    // resource: fillIn
+)
+
+predicate KMS_basic_identifier(input:seq<string>)
+    requires |input|==6 && |input[0]|==3;
+    requires |input[5]|>3 || |input[5]|>6;
 {
-    if |input| == 0 then
-        str_seq
-    else
-        if m == input[0] then
-            var temp_str_seq := str_seq + [section];
-            var temp_section := "";
-            help_slice_complicated(input[1..], m, temp_section, temp_str_seq)
-        else
-            var temp_section := section + [input[0]];
-            help_slice_complicated(input[1..], m, temp_section, str_seq)
+    if
+        // MUST start with string arn
+        && input[0] == "arn"
+        && |input[1]|!=0
+        && input[2] == "kms" 
+        && |input[3]| !=0
+        && |input[4]| !=0
+        && |input[5]|>3
+        && (
+            && input[5][..3] == "key"
+            && |input[5][3..]|!=0
+            && input[5][3]=='/')
+    then true
+    else if |input[5]|>6 && (input[5][..5] =="alias" 
+    &&|input[5][5..]| !=0&&input[5][5]=='/')
+    then true
+    else false
+
 }
+
+method test()
+{
+    assert KMS_basic_identifier(["arn","aws","kms","us-east-1","2222222222222","key/1234abcd-12ab-34cd-56ef-1234567890ab"])== true;
+}
+
+
+
+
+
+
+// function help_slice_complicated(input : string, m: char,section:string, str_seq : seq<string>):(ouput:seq<string>)
+
+//     requires 
+
+// {
+//     if |input| == 0 then
+//         str_seq
+//     else
+//         if m == input[0] then
+//             var temp_str_seq := str_seq + [section];
+//             var temp_section := "";
+//             help_slice_complicated(input[1..], m, temp_section, temp_str_seq)
+//         else
+//             var temp_section := section + [input[0]];
+//             help_slice_complicated(input[1..], m, temp_section, str_seq)
+// }
+
+
+
+
+
 
