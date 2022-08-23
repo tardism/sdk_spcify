@@ -131,23 +131,37 @@ method test3()
 
 }
 
-// function slice2(input:string, delimiter:char, curIndex:int, preDeliIndex:int, tempOut:seq<string>):(output:seq<string>)
-// requires curIndex<=|input|;
-// {    
-//     if curIndex == |input|-1 then tempOut
-//     else if (input[curIndex] == delimiter)
-//     then slice2(input,delimiter,curIndex+1,curIndex,tempOut+[input[preDeliIndex..curIndex+1]])
-//     else slice2(input,delimiter,curIndex+1,preDeliIndex,tempOut)
+function slice2(input:string, delimiter:char, curIndex:int, preDeliIndex:int, tempOut:seq<string>):(output:seq<string>)
+requires curIndex<=|input|;
+requires preDeliIndex <= |input|;
+requires |input| >= 1;
+{    
+    if delimiter !in input then tempOut + [input[curIndex+1..]]
+    else if (input[curIndex] == delimiter)
+    then slice2(input,delimiter,curIndex+1,curIndex,tempOut+[input[preDeliIndex..curIndex+1]])
+    else slice2(input,delimiter,curIndex+1,preDeliIndex,tempOut)
 
 
-// }
+}
 
-// function slice3(input:string, delimiter:char,tempOut:seq<string>):(output:seq<string>)
-// {
-//     if |input| == 0 then tempOut
-//     else if input[0] != delimiter
-//     then slice3(input[1..],delimiter,tempOut[0])
-// }
+function slice3(input:string, delimiter:char,tempOut:seq<string>):(output:seq<string>)
+requires |tempOut| !=0;
+{
+    if |input| == 0 then tempOut
+    else if input[0] != delimiter
+    then slice3(input[1..],delimiter,tempOut[0:=tempOut[|tempOut|-1]+[input[0]]])
+    else slice3(input[1..],delimiter,tempOut+[""])
+}
+
+method test33()
+{
+    var num := slice3("abc",'a',[""]);
+    var multiset_result := multiset("abc")['a']+1;
+    // assert |num| == 1;
+}
+
+
+
 
 
 

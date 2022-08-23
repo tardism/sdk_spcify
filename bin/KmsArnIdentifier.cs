@@ -32,17 +32,21 @@ type AccountString = s: string
   | AccountString?(s)
   witness *
 
-type ResourceSeqStr = x: seq<string>
-  | ResourceSeqStr?(x)
+datatype ARN = ARN(arnLiteral: string, partition: string, service: string, region: string, account: string, resource: Resource)
+
+type resourceType = s: string
+  | s == ""alias"" || s == ""key""
   witness *
 
-datatype ARN = ARN(arnLiteral: string, partition: string, service: string, region: string, account: string, resource: seq<string>)
-
-type KmsArn = a: ARN
-  | KmsArn?(a)
+type ResourceId = s: string
+  | |s| != 0
   witness *
 
-datatype KmsArnDatatype = KmsArnDatatype(arnLiteral: ArnString, partition: PartitionString, service: ServiceString, region: RegionString, account: AccountString, resource: ResourceSeqStr)
+datatype Resource = Resource(rtype: string, id: string)
+
+datatype KmsResource = KmsResource(rtype: resourceType, id: ResourceId)
+
+datatype KmsArnDatatype = KmsArnDatatype(arnLiteral: ArnString, partition: PartitionString, service: ServiceString, region: RegionString, account: AccountString, resource: KmsResource)
 
 predicate ArnString?(s: string)
   decreases s
@@ -74,28 +78,11 @@ predicate AccountString?(s: string)
   |s| != 0
 }
 
-predicate ResourceSeqStr?(x: seq<string>)
-  decreases x
+predicate KmsResource?(x: string, y: string)
+  decreases x, y
 {
-  |x| == 2 &&
-  (x[0] == ""alias"" || x[0] == ""key"") &&
-  |x[1]| != 0
-}
-
-predicate KmsArn?(a: ARN)
-  decreases a
-{
-  if a.arnLiteral == ""arn"" && |a.partition| != 0 && a.service == ""kms"" && |a.account| != 0 && |a.region| != 0 && |a.resource| >= 2 && ((a.resource[0] == ""key"" && |a.resource[1]| != 0) || (a.resource[0] == ""alias"" && |a.resource[1]| != 0)) then
-    true
-  else
-    false
-}
-
-method test()
-{
-  assert ARN(""arn"", ""aws"", ""kms"", ""us-east-1"", ""2222222222222"", [""key"", ""testid""]).ARN? == true;
-  assert KmsArn?(ARN(""arn"", ""aws"", ""kms"", ""us-east-1"", ""2222222222222"", [""alias"", ""testid""])) == true;
-  assert KmsArnDatatype(""arn"", ""aws"", ""kms"", ""us-east-1"", ""2222222222222"", [""key"", ""testid""]).KmsArnDatatype? == true;
+  (x == ""alias"" || x == ""key"") &&
+  |y| != 0
 }
 ")]
 
@@ -4889,6 +4876,9 @@ internal static class FuncExtensions {
   public static Func<UResult> DowncastClone<TResult, UResult>(this Func<TResult> F, Func<TResult, UResult> ResConv) {
     return () => ResConv(F());
   }
+  public static Func<U1, U2, UResult> DowncastClone<T1, T2, TResult, U1, U2, UResult>(this Func<T1, T2, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<TResult, UResult> ResConv) {
+    return (arg1, arg2) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2)));
+  }
 }
 namespace _System {
 
@@ -4940,13 +4930,6 @@ namespace _module {
     }
   }
 
-  public partial class ResourceSeqStr {
-    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<Dafny.ISequence<char>>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<Dafny.ISequence<char>>>(Dafny.Sequence<Dafny.ISequence<char>>.Empty);
-    public static Dafny.TypeDescriptor<Dafny.ISequence<Dafny.ISequence<char>>> _TypeDescriptor() {
-      return _TYPE;
-    }
-  }
-
   public interface _IARN {
     bool is_ARN { get; }
     Dafny.ISequence<char> dtor_arnLiteral { get; }
@@ -4954,7 +4937,7 @@ namespace _module {
     Dafny.ISequence<char> dtor_service { get; }
     Dafny.ISequence<char> dtor_region { get; }
     Dafny.ISequence<char> dtor_account { get; }
-    Dafny.ISequence<Dafny.ISequence<char>> dtor_resource { get; }
+    _IResource dtor_resource { get; }
     _IARN DowncastClone();
   }
   public class ARN : _IARN {
@@ -4963,8 +4946,8 @@ namespace _module {
     public readonly Dafny.ISequence<char> service;
     public readonly Dafny.ISequence<char> region;
     public readonly Dafny.ISequence<char> account;
-    public readonly Dafny.ISequence<Dafny.ISequence<char>> resource;
-    public ARN(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, Dafny.ISequence<Dafny.ISequence<char>> resource) {
+    public readonly _IResource resource;
+    public ARN(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, _IResource resource) {
       this.arnLiteral = arnLiteral;
       this.partition = partition;
       this.service = service;
@@ -5008,7 +4991,7 @@ namespace _module {
       s += ")";
       return s;
     }
-    private static readonly _IARN theDefault = create(Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<Dafny.ISequence<char>>.Empty);
+    private static readonly _IARN theDefault = create(Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Resource.Default());
     public static _IARN Default() {
       return theDefault;
     }
@@ -5016,7 +4999,7 @@ namespace _module {
     public static Dafny.TypeDescriptor<_IARN> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IARN create(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, Dafny.ISequence<Dafny.ISequence<char>> resource) {
+    public static _IARN create(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, _IResource resource) {
       return new ARN(arnLiteral, partition, service, region, account, resource);
     }
     public bool is_ARN { get { return true; } }
@@ -5045,17 +5028,146 @@ namespace _module {
         return this.account;
       }
     }
-    public Dafny.ISequence<Dafny.ISequence<char>> dtor_resource {
+    public _IResource dtor_resource {
       get {
         return this.resource;
       }
     }
   }
 
-  public partial class KmsArn {
-    private static readonly Dafny.TypeDescriptor<_IARN> _TYPE = new Dafny.TypeDescriptor<_IARN>(ARN.Default());
-    public static Dafny.TypeDescriptor<_IARN> _TypeDescriptor() {
+  public partial class resourceType {
+    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<char>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<char>>(Dafny.Sequence<char>.Empty);
+    public static Dafny.TypeDescriptor<Dafny.ISequence<char>> _TypeDescriptor() {
       return _TYPE;
+    }
+  }
+
+  public partial class ResourceId {
+    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<char>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<char>>(Dafny.Sequence<char>.Empty);
+    public static Dafny.TypeDescriptor<Dafny.ISequence<char>> _TypeDescriptor() {
+      return _TYPE;
+    }
+  }
+
+  public interface _IResource {
+    bool is_Resource { get; }
+    Dafny.ISequence<char> dtor_rtype { get; }
+    Dafny.ISequence<char> dtor_id { get; }
+    _IResource DowncastClone();
+  }
+  public class Resource : _IResource {
+    public readonly Dafny.ISequence<char> rtype;
+    public readonly Dafny.ISequence<char> id;
+    public Resource(Dafny.ISequence<char> rtype, Dafny.ISequence<char> id) {
+      this.rtype = rtype;
+      this.id = id;
+    }
+    public _IResource DowncastClone() {
+      if (this is _IResource dt) { return dt; }
+      return new Resource(rtype, id);
+    }
+    public override bool Equals(object other) {
+      var oth = other as Resource;
+      return oth != null && object.Equals(this.rtype, oth.rtype) && object.Equals(this.id, oth.id);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.rtype));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.id));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "Resource.Resource";
+      s += "(";
+      s += Dafny.Helpers.ToString(this.rtype);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this.id);
+      s += ")";
+      return s;
+    }
+    private static readonly _IResource theDefault = create(Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty);
+    public static _IResource Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<_IResource> _TYPE = new Dafny.TypeDescriptor<_IResource>(Resource.Default());
+    public static Dafny.TypeDescriptor<_IResource> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IResource create(Dafny.ISequence<char> rtype, Dafny.ISequence<char> id) {
+      return new Resource(rtype, id);
+    }
+    public bool is_Resource { get { return true; } }
+    public Dafny.ISequence<char> dtor_rtype {
+      get {
+        return this.rtype;
+      }
+    }
+    public Dafny.ISequence<char> dtor_id {
+      get {
+        return this.id;
+      }
+    }
+  }
+
+  public interface _IKmsResource {
+    bool is_KmsResource { get; }
+    Dafny.ISequence<char> dtor_rtype { get; }
+    Dafny.ISequence<char> dtor_id { get; }
+    _IKmsResource DowncastClone();
+  }
+  public class KmsResource : _IKmsResource {
+    public readonly Dafny.ISequence<char> rtype;
+    public readonly Dafny.ISequence<char> id;
+    public KmsResource(Dafny.ISequence<char> rtype, Dafny.ISequence<char> id) {
+      this.rtype = rtype;
+      this.id = id;
+    }
+    public _IKmsResource DowncastClone() {
+      if (this is _IKmsResource dt) { return dt; }
+      return new KmsResource(rtype, id);
+    }
+    public override bool Equals(object other) {
+      var oth = other as KmsResource;
+      return oth != null && object.Equals(this.rtype, oth.rtype) && object.Equals(this.id, oth.id);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.rtype));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.id));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "KmsResource.KmsResource";
+      s += "(";
+      s += Dafny.Helpers.ToString(this.rtype);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this.id);
+      s += ")";
+      return s;
+    }
+    private static readonly _IKmsResource theDefault = create(Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty);
+    public static _IKmsResource Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<_IKmsResource> _TYPE = new Dafny.TypeDescriptor<_IKmsResource>(KmsResource.Default());
+    public static Dafny.TypeDescriptor<_IKmsResource> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IKmsResource create(Dafny.ISequence<char> rtype, Dafny.ISequence<char> id) {
+      return new KmsResource(rtype, id);
+    }
+    public bool is_KmsResource { get { return true; } }
+    public Dafny.ISequence<char> dtor_rtype {
+      get {
+        return this.rtype;
+      }
+    }
+    public Dafny.ISequence<char> dtor_id {
+      get {
+        return this.id;
+      }
     }
   }
 
@@ -5066,7 +5178,7 @@ namespace _module {
     Dafny.ISequence<char> dtor_service { get; }
     Dafny.ISequence<char> dtor_region { get; }
     Dafny.ISequence<char> dtor_account { get; }
-    Dafny.ISequence<Dafny.ISequence<char>> dtor_resource { get; }
+    _IKmsResource dtor_resource { get; }
     _IKmsArnDatatype DowncastClone();
   }
   public class KmsArnDatatype : _IKmsArnDatatype {
@@ -5075,8 +5187,8 @@ namespace _module {
     public readonly Dafny.ISequence<char> service;
     public readonly Dafny.ISequence<char> region;
     public readonly Dafny.ISequence<char> account;
-    public readonly Dafny.ISequence<Dafny.ISequence<char>> resource;
-    public KmsArnDatatype(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, Dafny.ISequence<Dafny.ISequence<char>> resource) {
+    public readonly _IKmsResource resource;
+    public KmsArnDatatype(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, _IKmsResource resource) {
       this.arnLiteral = arnLiteral;
       this.partition = partition;
       this.service = service;
@@ -5120,7 +5232,7 @@ namespace _module {
       s += ")";
       return s;
     }
-    private static readonly _IKmsArnDatatype theDefault = create(ArnString.Default(), Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<Dafny.ISequence<char>>.Empty);
+    private static readonly _IKmsArnDatatype theDefault = create(ArnString.Default(), Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, Dafny.Sequence<char>.Empty, KmsResource.Default());
     public static _IKmsArnDatatype Default() {
       return theDefault;
     }
@@ -5128,7 +5240,7 @@ namespace _module {
     public static Dafny.TypeDescriptor<_IKmsArnDatatype> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IKmsArnDatatype create(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, Dafny.ISequence<Dafny.ISequence<char>> resource) {
+    public static _IKmsArnDatatype create(Dafny.ISequence<char> arnLiteral, Dafny.ISequence<char> partition, Dafny.ISequence<char> service, Dafny.ISequence<char> region, Dafny.ISequence<char> account, _IKmsResource resource) {
       return new KmsArnDatatype(arnLiteral, partition, service, region, account, resource);
     }
     public bool is_KmsArnDatatype { get { return true; } }
@@ -5157,16 +5269,11 @@ namespace _module {
         return this.account;
       }
     }
-    public Dafny.ISequence<Dafny.ISequence<char>> dtor_resource {
+    public _IKmsResource dtor_resource {
       get {
         return this.resource;
       }
     }
   }
 
-  public partial class __default {
-    public static void test()
-    {
-    }
-  }
 } // end of namespace _module
