@@ -45,12 +45,12 @@ type AccountString = s:string | AccountString?(s) witness *
 // The resource id MUST be a non-empty string 
 // this seq<string> length is 2, x[0] is key, x[1] is ID.
 
-predicate KmsResourceSeqStr?(x:seq<string>)
+predicate ResourceSeqStr?(x:seq<string>)
 {
     |x| == 2 && (x[0]=="alias" || x[0] == "key") && |x[1]| != 0
 }
 
-type KmsResourceSeqStr = x:seq<string> | KmsResourceSeqStr?(x) witness *
+type ResourceSeqStr = x:seq<string> | ResourceSeqStr?(x) witness *
 
 datatype ARN = ARN(
     arnLiteral: string,
@@ -65,9 +65,19 @@ datatype ARN = ARN(
 
 type KmsArn = a: ARN | KmsArn?(a) witness *
 
+datatype KmsArnDatatype = KmsArnDatatype(
+    arnLiteral: ArnString,
+    partition: PartitionString,
+    service: ServiceString,
+    region: RegionString,
+    account: AccountString,
+    resource: ResourceSeqStr
+)
+
+
+
 
 predicate KmsArn?(a:ARN)
-
 
 {
     if
@@ -101,8 +111,9 @@ predicate KmsArn?(a:ARN)
 
 method test()
 {
-    assert ARN("arn","aws","kms","us-east-1","2222222222222",["key","testid"]).ARN?;
+    assert ARN("arn","aws","kms","us-east-1","2222222222222",["key","testid"]).ARN? == true;
 
     assert KmsArn?(ARN("arn","aws","kms","us-east-1","2222222222222",["alias","testid"])) == true;
 
+    assert KmsArnDatatype("arn","aws","kms","us-east-1","2222222222222",["key","testid"]).KmsArnDatatype? == true;
 }
