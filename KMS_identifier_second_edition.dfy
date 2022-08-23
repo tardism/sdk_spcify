@@ -89,44 +89,6 @@ function help_slice(input : string, m: char, section:string):(ouput:seq<string>)
 
 
 
-datatype ARN = ARN(
-    arnLiteral: string,
-    partition: string,
-    service: string,
-    account: string,
-    region: string
-    // resource: fillIn
-)
-
-predicate KMS_basic_identifier(input:seq<string>)
-    requires |input|==6 && |input[0]|==3;
-    requires |input[5]|>3 || |input[5]|>6;
-{
-    if
-        // MUST start with string arn
-        && input[0] == "arn"
-        && |input[1]|!=0
-        && input[2] == "kms" 
-        && |input[3]| !=0
-        && |input[4]| !=0
-        && |input[5]|>3
-        && (
-            && input[5][..3] == "key"
-            && |input[5][3..]|!=0
-            && input[5][3]=='/')
-    then true
-    else if |input[5]|>6 && (input[5][..5] =="alias" 
-    &&|input[5][5..]| !=0&&input[5][5]=='/')
-    then true
-    else false
-
-}
-
-method test()
-{
-    assert KMS_basic_identifier(["arn","aws","kms","us-east-1","2222222222222","key/1234abcd-12ab-34cd-56ef-1234567890ab"])== true;
-}
-
 
 
 

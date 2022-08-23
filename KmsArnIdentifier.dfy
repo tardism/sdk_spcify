@@ -3,19 +3,26 @@ predicate ArnString?(s: string)
     s == "arn"
 }
 // MUST start with string arn
-type ArnString = s:string | ArnString?(s) witness *
+type ArnString = s:string | ArnString?(s) witness "arn"
+
+predicate PartitionString?(s:string)
+{
+    s != ""
+}
 
 // The partition MUST be a non-empty
-type PartitionString = s:string | |s| != 0 witness "a"
+type PartitionString = s:string | PartitionString?(s) witness *
 
 // The service MUST be the string kms
-type ServiceString = s | s =="kms"
+predicate ServiceString?(s:string)
+
+type ServiceString = s | s =="kms" witness *
 
 // The region MUST be a non-empty string
-type RegionString = s:string | |s| != 0
+type RegionString = s:string | |s| != 0 witness *
 
 //The account MUST be a non-empty string
-type AccountString = s:string | |s| != 0
+type AccountString = s:string | |s| != 0 witness *
 
 
 // The resource section MUST be non-empty and MUST be split by a single / any additional / are included in the resource id
