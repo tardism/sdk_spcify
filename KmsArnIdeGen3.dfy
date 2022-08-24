@@ -66,3 +66,44 @@ datatype ARN = ARN(
     resource: Resource
 )
 
+predicate KmsArn?(a:ARN)
+
+{
+    // MUST start with string arn
+    && a.arnLiteral == "arn"
+
+    // The partition MUST be a non-empty
+    && |a.partition| !=0
+
+    // The service MUST be the string kms
+    && a.service == "kms"
+
+    //The account MUST be a non-empty string
+    && |a.account| != 0
+
+    // The region MUST be a non-empty string
+    && |a.region| !=0
+
+    // then it leads to resource type to be key or alias, and both id cannot be empty
+    &&  (
+        (&& a.resource.rtype == "key"
+        && |a.resource.id| != 0 ) 
+        || 
+        (&& a.resource.rtype == "alias" 
+        && |a.resource.id| != 0 )
+        )
+
+}
+
+type KmsArnSubtype = a: ARN | KmsArn?(a) witness *
+
+datatype Result<T> =
+| Success(value: T)
+| Failure(error: string)
+
+function method AwsKmsMrkIdentifier(a:ARN):Result{
+    if KmsArn?(a) == false then
+        
+}
+
+
