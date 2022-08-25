@@ -9,7 +9,7 @@ type ArnString = s:string |  s == "arn" witness *
 // The partition MUST be a non-empty
 predicate PartitionString?(s:string)
 {
-    s != ""
+    |s|!=0
 }
 type PartitionString = s:string | PartitionString?(s) witness *
 
@@ -18,7 +18,7 @@ type PartitionString = s:string | PartitionString?(s) witness *
 // The service MUST be the string kms
 predicate ServiceString?(s:string)
 {
-    s == "kms"
+    |s|!=0
 }
 
 type ServiceString = s | ServiceString?(s) witness *
@@ -31,8 +31,6 @@ predicate RegionString?(s:string)
 type RegionString = s:string | RegionString?(s) witness *
 
 //The account MUST be a non-empty string
-
-
 predicate AccountString?(s:string)
 {
     |s|!=0
@@ -42,31 +40,22 @@ predicate AccountString?(s:string)
 type AccountString = s:string | AccountString?(s) witness *
 
 
-// The resource section MUST be non-empty and MUST be split by a single / any additional / are included in the resource id
-// The resource type MUST be either alias or key
-// The resource id MUST be a non-empty string 
-// this seq<string> length is 2, x[0] is key, x[1] is ID.
-
-predicate KmsResource?(x:string, y:string)
-{
-    (x=="alias" ||x == "key") && |y| != 0
-}
-
 datatype Resource = Resource(
     rtype : string,
     id : string
 )
 
 datatype ARN = ARN(
-    arnLiteral: string,
-    partition: string,
-    service: string,
-    region: string,
-    account: string,
+    arnLiteral: ArnString,
+    partition: PartitionString,
+    service: ServiceString,
+    region: RegionString,
+    account: AccountString,
     resource: Resource
 )
 
-predicate KmsArn?(a:ARN)
+
+predicate method KmsArn?(a:ARN)
 
 {
     // MUST start with string arn
@@ -95,15 +84,27 @@ predicate KmsArn?(a:ARN)
 
 }
 
-type KmsArnSubtype = a: ARN | KmsArn?(a) witness *
 
-datatype Result<T> =
-| Success(value: T)
+datatype Result =
+| Success(value: bool)
 | Failure(error: string)
 
-function method AwsKmsMrkIdentifier(a:ARN):Result{
-    if KmsArn?(a) == false then
-        
+function method AwsKmsMrkArn(a:ARN):Result{
+    if KmsArn?(a) == false 
+    then Result.Failure("not a KmsArn")
+    else 
+        var resBool := (
+        && a.resource.rtype == "key"
+        && |a.resource.id| > 4
+        && "mrk-" < a.resource.id);
+
+        Result.Success(resBool)
 }
 
 
+
+lemma asdf(a: ARN)
+    requires KmsArn?(a)
+    ensures AwsKmsMrkArn(a).Success?
+{
+}

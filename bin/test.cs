@@ -52,7 +52,7 @@ function method F(s: string): Result<seq<string>>
 function method use(s: string): Result<ARN>
   decreases s
 {
-  var asdf: seq<string> :- F(s); var t: Result<seq<string>> := F(s); if t.Failure? then Failure(t.error) else var v: seq<string> := t.value; Success(ARN(asdf[0], asdf[1], asdf[2], asdf[3], asdf[4]))
+  var asdf: seq<string> :- F(s); Success(ARN(asdf[0], asdf[1], asdf[2], asdf[3], asdf[4]))
 }
 ")]
 
@@ -5072,13 +5072,7 @@ namespace _module {
         return (_1_valueOrError0).PropagateFailure<_IARN>();
       } else {
         Dafny.ISequence<Dafny.ISequence<char>> _2_asdf = (_1_valueOrError0).Extract();
-        _IResult<Dafny.ISequence<Dafny.ISequence<char>>> _3_t = __default.F(s);
-        if ((_3_t).is_Failure) {
-          return Result<_IARN>.create_Failure((_3_t).dtor_error);
-        } else {
-          Dafny.ISequence<Dafny.ISequence<char>> _4_v = (_3_t).dtor_value;
-          return Result<_IARN>.create_Success(ARN.create((_2_asdf).Select(BigInteger.Zero), (_2_asdf).Select(BigInteger.One), (_2_asdf).Select(new BigInteger(2)), (_2_asdf).Select(new BigInteger(3)), (_2_asdf).Select(new BigInteger(4))));
-        }
+        return Result<_IARN>.create_Success(ARN.create((_2_asdf).Select(BigInteger.Zero), (_2_asdf).Select(BigInteger.One), (_2_asdf).Select(new BigInteger(2)), (_2_asdf).Select(new BigInteger(3)), (_2_asdf).Select(new BigInteger(4))));
       }
     }
   }

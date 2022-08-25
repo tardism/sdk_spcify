@@ -42,7 +42,7 @@ datatype ARN = ARN(
     r: string
 )
 
-function method use(s: string): Result<string>
+function method use(s: string): Result<ARN>
 
 {
     var asdf :- F(s);
@@ -57,7 +57,6 @@ function method use(s: string): Result<string>
     // var asdf := F(s);
     // var asdf := split(s);
 
-    // Success(ARN(asdf[0], asdf[1], asdf[2], asdf[3], asdf[4])) 
-    Failure("hahahah")
+    Success(ARN(asdf[0], asdf[1], asdf[2], asdf[3], asdf[4])) 
 }
 
