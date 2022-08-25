@@ -102,8 +102,15 @@ function method AwsKmsMrkArn(a:ARN):Result{
 }
 
 
+function method AwsKmsMrkArnIdentifier(a:string) : bool
+{
+    if "arn:" < a 
+    then true // AwsKmsMrkArn's input is not a string yet, we'll fill in later
+    else "mrk-" < a
+}
 
-lemma asdf(a: ARN)
+
+lemma  asdf(a: ARN)
     requires KmsArn?(a)
     ensures AwsKmsMrkArn(a).Success?
 {
