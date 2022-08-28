@@ -13,7 +13,7 @@ function method FindNextDelimiter(input:string, delimiter:char, index :nat)
         FindNextDelimiter(input, delimiter, index+1)
 }
 
-function Join(s: seq<string>, d: char)
+function method Join(s: seq<string>, d: char)
     :(output: string)
     requires |s|>0
      decreases |s|
@@ -25,7 +25,7 @@ function Join(s: seq<string>, d: char)
 }
 
 
-function split(s:string, d:char)
+function method split(s:string, d:char)
     :(output:seq<string>)
     ensures forall o <- output :: d !in o
     ensures 0 < |output|
@@ -57,7 +57,6 @@ datatype ARN = ARN(
 
 
 predicate method KmsArn?(a:ARN)
-
 {
     // MUST start with string arn
     && a.arnLiteral == "arn"
@@ -75,13 +74,11 @@ predicate method KmsArn?(a:ARN)
     && |a.region| !=0
 
     // then it leads to resource type to be key or alias, and both id cannot be empty
-    &&  (
-        (&& a.resource.rtype == "key"
-        && |a.resource.id| != 0 ) 
-        || 
-        (&& a.resource.rtype == "alias" 
-        && |a.resource.id| != 0 )
-        )
+    &&  
+    (|| a.resource.rtype == "key" 
+    || a.resource.rtype == "alias") 
+
+    && |a.resource.id| != 0 
 
 }
 
@@ -90,36 +87,66 @@ datatype Result =
 | Failure(error: string)
 
 
-function AwsKmsMrkArn_helper(a:ARN):Result
+function method AwsKmsMrkArn_helper(a:ARN):Result
+    
 {
     if KmsArn?(a) == false 
     then Result.Failure("not a KmsArn, due to KmsArn? false")
     else 
         var resBool := (
         && a.resource.rtype == "key"
-        && |a.resource.id| > 4
         && "mrk-" < a.resource.id);
         Result.Success(resBool)
 }
 
-function AwsArn?(s:string) : Result
+function method AwsArn?(s:string) : (output : Result)
+    ensures output == Result.Success(true) ==> multiset(s)[':'] == 5
 {
     var seqS := split(s,':');
-
     if |seqS| != 6 
     then 
         Result.Failure("not a Arn, due to |seqS| != 6")
     else
         var seqResource := split(seqS[5], '/');
-        if |seqResource| != 2
+        if |seqResource| == 2
         then 
-            Result.Failure("not a Arn, due to |seqResource|!=2")
-        else 
             Result.Success(true)
+        else             
+            Result.Failure("not a Arn, due to |seqResource|!=2")
+}
+
+lemma ProveAwsArn (s:string,ss:seq<string>)
+    requires AwsArn?(s) == Result.Success(true)
+    requires ss == split(s,':')
+{
+    assert multiset(s)[':'] == 5;
+    assert |ss| == 6;
+    assert '/' in ss[5];
+    assert |split(ss[5],'/')| == 2;
+}
+
+lemma ProveAwsArn2 (s:string, ss:seq<string>)
+    requires multiset(s)[';'] == 5
+    requires ss == split(s,':')
+    requires |ss| == 6
+    requires multiset(ss[5])['/'] == 1
+    requires |split(ss[5],'/')| == 2
+    ensures AwsArn?(s) == Result.Success(true)
+{
 
 }
 
-function AwsKmsMrkArn?(s:string) : (result : Result)
+
+function method CreateArn(s:string):(output : ARN)
+    requires AwsArn?(s) == Result.Success(true)
+{
+    var seqS := split(s,':');
+    var seqResource := split(seqS[5], '/');
+    var resource := Resource(seqResource[0], seqResource[1]);
+    ARN(seqS[0], seqS[1], seqS[2], seqS[3], seqS[4], resource)
+}
+
+function method AwsKmsMrkArn?(s:string) : (result : Result)
 {
     var awsArn? := AwsArn?(s);
     if  awsArn? == Result.Success(true)
@@ -130,30 +157,7 @@ function AwsKmsMrkArn?(s:string) : (result : Result)
         awsArn?
 }
 
-function CreateArn(s:string):(output : ARN)
-    requires AwsArn?(s) == Result.Success(true)
-    ensures ARN.ARN?
-{
-    var seqS := split(s,':');
-    var seqResource := split(seqS[5], '/');
-    var resource := Resource(seqResource[0], seqResource[1]);
-
-    ARN(seqS[0], seqS[1], seqS[2], seqS[3], seqS[4], resource)
-}
-
-predicate AwsKmsIdentifier? (s:string)
-{
-    if AwsArn?(s) == Result.Success(true)
-    then 
-        var arn := CreateArn(s);
-        KmsArn?(arn)
-    else 
-        "alias/" < s
-             
-
-}
-
-function AwsKmsMrkArnIdentifier?(s:string) : (output:Result)
+function method AwsKmsMrkArnIdentifier?(s:string) : (output:Result)
 {
     if "arn:" < s
     then 
@@ -161,5 +165,12 @@ function AwsKmsMrkArnIdentifier?(s:string) : (output:Result)
     else 
         Result.Success("mrk-" < s)
 }
+
+// method test()
+// {   
+//     var a := "arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab";
+//     assert AwsKmsMrkArn?(a) == Result.Success(false);
+// }
+
 
 
