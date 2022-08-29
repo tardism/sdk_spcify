@@ -82,25 +82,19 @@ predicate method KmsArn?(a:ARN)
 
 }
 
+type AwsKmsArn = a: ARN | KmsArn?(a) witness *
+
 datatype Result =
 | Success(value: bool)
 | Failure(error: string)
 
 
-function method AwsKmsMrkArn_helper(a:ARN):Result
-    
-{
-    if KmsArn?(a) == false 
-    then Result.Failure("not a KmsArn, due to KmsArn? false")
-    else 
-        var resBool := (
-        && a.resource.rtype == "key"
-        && "mrk-" < a.resource.id);
-        Result.Success(resBool)
-}
+
 
 function method AwsArn?(s:string) : (output : Result)
-    ensures output == Result.Success(true) ==> multiset(s)[':'] == 5
+    ensures output == Result.Success(true) ==> |split(s,':')| == 6
+    ensures output == Result.Success(true) ==> '/' in split(s,':')[5]
+    ensures output == Result.Success(true) ==> multiset(split(s,':')[5])['/'] == 1
 {
     var seqS := split(s,':');
     if |seqS| != 6 
@@ -115,37 +109,29 @@ function method AwsArn?(s:string) : (output : Result)
             Result.Failure("not a Arn, due to |seqResource|!=2")
 }
 
-lemma ProveAwsArn (s:string,ss:seq<string>)
-    requires AwsArn?(s) == Result.Success(true)
-    requires ss == split(s,':')
-{
-    assert multiset(s)[':'] == 5;
-    assert |ss| == 6;
-    assert '/' in ss[5];
-    assert |split(ss[5],'/')| == 2;
-}
 
-lemma ProveAwsArn2 (s:string, ss:seq<string>)
-    requires multiset(s)[';'] == 5
-    requires ss == split(s,':')
-    requires |ss| == 6
-    requires multiset(ss[5])['/'] == 1
-    requires |split(ss[5],'/')| == 2
-    ensures AwsArn?(s) == Result.Success(true)
-{
-
-}
-
-
-function method CreateArn(s:string):(output : ARN)
-    requires AwsArn?(s) == Result.Success(true)
+function method CreateArn(s:string):(output : Result<AwsKmsArn>)
 {
     var seqS := split(s,':');
     var seqResource := split(seqS[5], '/');
     var resource := Resource(seqResource[0], seqResource[1]);
-    ARN(seqS[0], seqS[1], seqS[2], seqS[3], seqS[4], resource)
+    var arn := ARN(seqS[0], seqS[1], seqS[2], seqS[3], seqS[4], resource);
+
+    if arn.service != "kms" then
+        Failure("Wow, this is not an AwsKmsArn is it...")
 }
 
+function method AwsKmsMrkArn_helper(a:ARN):Result
+    
+{
+    if !KmsArn?(a)
+    then Result.Failure("not a KmsArn, due to KmsArn? false")
+    else 
+        var resBool := (
+        && a.resource.rtype == "key"
+        && "mrk-" < a.resource.id);
+        Result.Success(resBool)
+}
 function method AwsKmsMrkArn?(s:string) : (result : Result)
 {
     var awsArn? := AwsArn?(s);
@@ -166,11 +152,60 @@ function method AwsKmsMrkArnIdentifier?(s:string) : (output:Result)
         Result.Success("mrk-" < s)
 }
 
-// method test()
-// {   
-//     var a := "arn:aws:kms:us-east-1:2222222222222:key/1234abcd-12ab-34cd-56ef-1234567890ab";
-//     assert AwsKmsMrkArn?(a) == Result.Success(false);
-// }
+method IAmStatement() returns (o: bool)
+{
+    if true {
+        // this was an if statement
+    }
+
+    for i := 0 to 5 {
+        // more statements
+    }
+
+    var iAmExpression := if true then "asdf" else "qwer";
+    return true;
+}
+
+lemma ProveAwsArn (s:string,ss:seq<string>)
+    requires IAmStatement()
+    requires 5 < |s|
+    requires
+        && 5 < |s|
+        && var a := AwsArn?(s);
+        && a.Success?
+        && a.value
+    requires ss == split(s,':')
+{
+    assert multiset(s)[':'] == 5;
+    assert |ss| == 6;
+    assert '/' in ss[5];
+    assert |split(ss[5],'/')| == 2;
+}
+
+lemma ProveAwsArn2 (s:string, ss:seq<string>)
+    requires multiset(s)[';'] == 5
+    requires ss == split(s,':')
+    requires |ss| == 6
+    requires multiset(ss[5])['/'] == 1
+    requires |split(ss[5],'/')| == 2
+
+{
+    assert AwsArn?(s) == Result.Success(true);
+}
+
+lemma test3(s:string, arn : ARN)
+    requires AwsArn?(s) == Result.Success(true)
+    requires arn == CreateArn(s)
+    requires arn.resource.rtype == "key" 
+    requires "mrk-" < arn.resource.id 
+{
+    assert AwsArn?(s) == Result.Success(true);
+    assert arn == CreateArn(s);
+    assert (arn.resource.rtype == "key") && "mrk-" < arn.resource.id;
+    assert AwsKmsMrkArn_helper(arn) == Result.Success(true);
+    // assert AwsKmsMrkArn?(s) == Result.Success(true);
+}
+
 
 
 

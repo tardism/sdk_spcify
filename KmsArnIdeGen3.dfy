@@ -1,9 +1,9 @@
-// predicate ArnString?(s: string)
-// {
-//     s == "arn"
-// }
-// // MUST start with string arn
-// type ArnString = s:string |  s == "arn" witness *
+predicate ArnString?(s: string)
+{
+    s == "arn"
+}
+// MUST start with string arn
+type ArnString = s:string |  s == "arn" witness *
 
 
 // // The partition MUST be a non-empty
@@ -46,7 +46,7 @@ datatype Resource = Resource(
 )
 
 datatype ARN = ARN(
-    arnLiteral: string,
+    arnLiteral: ArnString,
     partition: string,
     service: string,
     region: string,
@@ -56,7 +56,6 @@ datatype ARN = ARN(
 
 
 predicate method KmsArn?(a:ARN)
-
 {
     // MUST start with string arn
     && a.arnLiteral == "arn"
@@ -83,6 +82,14 @@ predicate method KmsArn?(a:ARN)
         )
 
 }
+
+type KmsArn = a: ARN | KmsArn?(a) witness *
+
+function method ParseKmsArn(s: string) : (r: Result<KmsArn>)
+
+lemma ParseKmsArnIsCorrect(s: string)
+    // MUST start with string arn
+    ensures ParseKmsArn(s).Success? ==> "arn" < s
 
 
 datatype Result =

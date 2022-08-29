@@ -29,7 +29,7 @@ function method F(s:string): Result<seq<string>>
     var test := split(s);
 
     if (|test| == 5) then
-        Result.Success(test)
+        Success(test)
     else
         Result.Failure("did not split to 5")
 }
@@ -58,5 +58,28 @@ function method use(s: string): Result<ARN>
     // var asdf := split(s);
 
     Success(ARN(asdf[0], asdf[1], asdf[2], asdf[3], asdf[4])) 
+}
+
+
+
+
+datatype M =
+| A
+| B
+| C
+| D
+
+
+lemma asdf(a: M, b: M)
+  ensures a.A? ==> b.B?
+
+lemma qwer(b: M, c: M)
+  ensures b.B? ==> c.C?
+
+lemma zxcv(a: M, b: M, c: M)
+  ensures a.A? ==> c.C?
+{
+  asdf(a, b);
+  qwer(b, c);
 }
 
